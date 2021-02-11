@@ -15,11 +15,14 @@ class FinalCardStacl extends StatefulWidget {
   final double verticalPadding;
   final double cardHeight;
   final double cardWidth;
+  @required
+  final PageController pageController;
 
   FinalCardStacl.builder(
       {Key key,
       @required this.widgetBuilder,
-      this.itemCount,
+      @required this.itemCount,
+      @required this.pageController,
       this.visiblePageCount = 4,
       this.dy = -10,
       this.aspectRatio = 2 / 3,
@@ -35,7 +38,6 @@ class FinalCardStacl extends StatefulWidget {
 }
 
 class _CardSwipeStackState extends State<FinalCardStacl> {
-  PageController _pageController;
   double _pagePosition = 0;
   List<Widget> _widgetList = [];
   DragDirection direction = DragDirection.none;
@@ -44,10 +46,9 @@ class _CardSwipeStackState extends State<FinalCardStacl> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
-    _pageController.addListener(() {
+    widget.pageController.addListener(() {
       setState(() {
-        _pagePosition = _pageController.page;
+        _pagePosition = widget.pageController.page;
       });
     });
   }
@@ -58,7 +59,7 @@ class _CardSwipeStackState extends State<FinalCardStacl> {
       child: Stack(children: <Widget>[
         PageView.builder(
           physics: BouncingScrollPhysics(),
-          controller: _pageController,
+          controller: widget.pageController,
           itemCount: widget.itemCount,
           itemBuilder: (context, index) => null,
         ),
@@ -73,15 +74,15 @@ class _CardSwipeStackState extends State<FinalCardStacl> {
             onHorizontalDragEnd: (details) {
               switch (direction) {
                 case DragDirection.left:
-                  _pageController.animateToPage(
-                      _pageController.page.toInt() + 1,
+                  widget.pageController.animateToPage(
+                      widget.pageController.page.toInt() + 1,
                       duration: Duration(milliseconds: 300),
                       curve: Curves.ease);
                   break;
 
                 case DragDirection.right:
-                  _pageController.animateToPage(
-                      _pageController.page.toInt() - 1,
+                  widget.pageController.animateToPage(
+                      widget.pageController.page.toInt() - 1,
                       duration: Duration(milliseconds: 300),
                       curve: Curves.ease);
                   break;
@@ -109,13 +110,17 @@ class _CardSwipeStackState extends State<FinalCardStacl> {
     double top = -widget.dy * delta + widget.verticalPadding;
     double start = (MediaQuery.of(context).size.width - cardWidth) / 2;
 
-    log('delta=$delta');
-    pageList.add(_getWidgetForValues(top, -width * delta + startPadding,
-        cardWidth + delta * 10, cardHeight, currentPageIndex));
+    // log('delta=$delta');
+    pageList.add(_getWidgetForValues(
+        top,
+        -width * delta + startPadding,
+        cardWidth + delta * 10,
+        cardHeight,
+        currentPageIndex)); //ставит певую карту
 
     int i;
-    int rIndex = 1;
     for (i = currentPageIndex + 1; i < lastPage; i++) {
+      //рисует до последней видимой
       start += 5;
       cardHeight -= 10;
       cardWidth -= 10;
@@ -123,19 +128,18 @@ class _CardSwipeStackState extends State<FinalCardStacl> {
       if (i >= widget.itemCount) continue;
       pageList.add(_getWidgetForValues(top, start - (delta * 5),
           cardWidth + (delta * 10), cardHeight + (delta * 10), i));
-      rIndex++;
     }
     if (i < widget.itemCount) {
-      top += widget.dy;
-      pageList.add(_getWidgetForValues(
-          top, start * _getDepthFactor(rIndex, delta), 0, 0, i));
+      //рисует все остальное. Анимация появления последней тоже тут
+      // top += 10;
+      start += 5;
+      cardHeight -= 10;
+      cardWidth -= 5;
+      pageList.add(_getWidgetForValues(top - (delta * 10), start - (delta * 5),
+          cardWidth + (delta * 5), cardHeight + (delta * 10), i));
     }
     return Stack(
         alignment: Alignment.center, children: pageList.reversed.toList());
-  }
-
-  double _getDepthFactor(int index, double delta) {
-    return (1 - widget.depthFactor * (index - delta) / widget.visiblePageCount);
   }
 
   Widget _getWidgetForValues(
